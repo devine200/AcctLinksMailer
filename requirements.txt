@@ -1,0 +1,6 @@
+Django==4
+django-cors-headers
+djangorestframework
+requests
+pandas
+python-dotenv

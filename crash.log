@@ -1,0 +1,20 @@
+Traceback (most recent call last):
+  File "run_server.py", line 31, in <module>
+    main()
+  File "run_server.py", line 23, in main
+    execute_from_command_line([
+  File "django/core/management/__init__.py", line 425, in execute_from_command_line
+  File "django/core/management/__init__.py", line 419, in execute
+  File "django/core/management/base.py", line 373, in run_from_argv
+  File "django/core/management/commands/runserver.py", line 66, in execute
+  File "django/core/management/base.py", line 417, in execute
+  File "django/core/management/commands/runserver.py", line 101, in handle
+  File "django/core/management/commands/runserver.py", line 108, in run
+  File "django/utils/autoreload.py", line 646, in run_with_reloader
+  File "pyi_rth_django.py", line 24, in _restart_with_reloader
+  File "django/utils/autoreload.py", line 263, in restart_with_reloader
+  File "django/utils/autoreload.py", line 220, in get_child_arguments
+IndexError: list index out of range
+[PYI-86798:ERROR] Failed to execute script 'run_server' due to unhandled exception!
+🚀 Website Server Running on port 8880
+🌐 Visit http://localhost:8880

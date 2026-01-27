@@ -1,0 +1,10 @@
+# created by virtualenv automatically
+/env
+*/__pycache__
+*/migrations
+/build
+run_server.py
+Dynamic-Email-Backend.code-workspace
+*/.env
+**.spec
+/dist
