@@ -53,12 +53,12 @@ class BatchEmailView(APIView):
         
         try:
             email_resp = send_batch_message({
-                "website_link": website_link,
+                "website_link": website_link.replace("https://", ""),
                 "website_text": website_text,
-                "telegram_link": telegram_link,
+                "telegram_link": telegram_link.replace("https://", ""),
                 "team": team,
                 "product_name": product_name,
-                "livechat_link": livechat_link
+                "livechat_link": livechat_link.replace("https://", "")
             })
             template, _ = EmailTemplateInfo.objects.get_or_create(user=request.user)
             template.website_link = website_link
@@ -93,12 +93,12 @@ class SingleEmailView(APIView):
         
         try:
             send_single_message(request.user.email, {
-                "website_link": website_link,
+                "website_link": website_link.replace("https://", ""),
                 "website_text": website_text,
-                "telegram_link": telegram_link,
+                "telegram_link": telegram_link.replace("https://", ""),
                 "team": team,
                 "product_name": product_name,
-                "livechat_link": livechat_link
+                "livechat_link": livechat_link.replace("https://", "")
             })
             template, _ = EmailTemplateInfo.objects.get_or_create(user=request.user)
             template.website_link = website_link
