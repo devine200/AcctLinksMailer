@@ -17,11 +17,6 @@ import sys
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-if getattr(sys, "frozen", False):
-    BASE_DIR = Path(sys._MEIPASS)
-else:
-    BASE_DIR = Path(__file__).resolve().parent.parent
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
 
@@ -31,7 +26,7 @@ SECRET_KEY = 'django-insecure-emron#@3f5rjv+3_-_f9l)syicu%o%^itv0fp-61zud8=0@1(#
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -67,9 +62,7 @@ ROOT_URLCONF = 'server.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [
-            BASE_DIR / "webapp" / "templates",
-        ],
+        'DIRS': [],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [

@@ -46,8 +46,9 @@ class BatchEmailView(APIView):
         telegram_link = request.data.get("telegramLink")
         team = request.data.get("team")
         product_name = request.data.get("productName")
+        livechat_link = request.data.get("liveChatLink")
         
-        if not all([website_link, website_text, telegram_link, team, product_name]):
+        if not all([website_link, website_text, telegram_link, team, product_name, livechat_link]):
             return Response({"error": "required field missing"}, status=400)
         
         try:
@@ -56,7 +57,8 @@ class BatchEmailView(APIView):
                 "website_text": website_text,
                 "telegram_link": telegram_link,
                 "team": team,
-                "product_name": product_name
+                "product_name": product_name,
+                "livechat_link": livechat_link
             })
             template, _ = EmailTemplateInfo.objects.get_or_create(user=request.user)
             template.website_link = website_link
@@ -64,6 +66,7 @@ class BatchEmailView(APIView):
             template.telegram_link = telegram_link
             template.team = team
             template.product_name = product_name
+            template.livechat_link = livechat_link
             template.save()
             
             return Response(status=200, data={"message": email_resp})
@@ -83,8 +86,9 @@ class SingleEmailView(APIView):
         telegram_link = request.data.get("telegramLink")
         team = request.data.get("team")
         product_name = request.data.get("productName")
+        livechat_link = request.data.get("liveChatLink")
         
-        if not all([website_link, website_text, telegram_link, team, product_name]):
+        if not all([website_link, website_text, telegram_link, team, product_name, livechat_link]):
             return Response({"error": "required field missing"}, status=400)
         
         try:
@@ -93,7 +97,8 @@ class SingleEmailView(APIView):
                 "website_text": website_text,
                 "telegram_link": telegram_link,
                 "team": team,
-                "product_name": product_name
+                "product_name": product_name,
+                "livechat_link": livechat_link
             })
             template, _ = EmailTemplateInfo.objects.get_or_create(user=request.user)
             template.website_link = website_link
@@ -101,6 +106,7 @@ class SingleEmailView(APIView):
             template.telegram_link = telegram_link
             template.team = team
             template.product_name = product_name
+            template.livechat_link = livechat_link
             template.save()
             
             return Response(status=200, data={"message": "test email sent successfully"})

@@ -167,8 +167,8 @@ def send_batch_message(
         "authorization": f"Zoho-enczapikey {API_KEY}",
     }
 
-    # user_info_df = pd.read_csv("users.csv")
-    user_info_df = pd.read_csv("app/test_users.csv")
+    is_test_mail = os.getenv("IS_TEST_MAIL", "false").lower() == "true"
+    user_info_df = pd.read_csv("app/test_users.csv" if is_test_mail else "app/users.csv")
     recipients = build_recipients(user_info_df, merge_info)
     total = len(recipients)
     total_batches = math.ceil(total / ZEPTO_BATCH_LIMIT)
