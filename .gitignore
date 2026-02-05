@@ -5,6 +5,6 @@
 /build
 run_server.py
 Dynamic-Email-Backend.code-workspace
-*/.env
+.env
 **.spec
 /dist
