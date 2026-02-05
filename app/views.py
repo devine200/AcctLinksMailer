@@ -113,7 +113,7 @@ class SingleEmailView(APIView):
                 "product_name": product_name,
                 "livechat_link": livechat_link,
                 "name": request.user.username,
-                "email": "samuelemen200@gmail.com",
+                "email": request.user.email,
                 "logo_url": LOGO_URL
             }
             
