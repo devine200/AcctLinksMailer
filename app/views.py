@@ -6,8 +6,17 @@ from rest_framework.permissions import IsAuthenticated
 
 from django.contrib.auth.models import User
 
-from .mail_handler import send_batch_message, send_single_message
+from app.serializers import EmailTemplateSerializer
+
+from .mail_handler import send_batch_message, send_single_message, send_template_email
 from .models import EmailTemplateInfo, EmailTemplateInfoSerializer
+
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+LOGO_URL = os.getenv("LOGO_URL", "https://acctbank.com/assets/storage/images/logo_dark_GIR.png")
 
 class LoginView(APIView):
     def post(self, request):
@@ -53,12 +62,13 @@ class BatchEmailView(APIView):
         
         try:
             email_resp = send_batch_message({
-                "website_link": website_link.replace("https://", ""),
+                "website_link": website_link,
                 "website_text": website_text,
-                "telegram_link": telegram_link.replace("https://", ""),
+                "telegram_link": telegram_link,
                 "team": team,
                 "product_name": product_name,
-                "livechat_link": livechat_link.replace("https://", "")
+                "livechat_link": livechat_link,
+                "logo_url": LOGO_URL
             })
             template, _ = EmailTemplateInfo.objects.get_or_create(user=request.user)
             template.website_link = website_link
@@ -68,6 +78,9 @@ class BatchEmailView(APIView):
             template.product_name = product_name
             template.livechat_link = livechat_link
             template.save()
+            
+            if len(email_resp.get("failed_batches")) > 0:
+                return Response(status=408, data={"message": email_resp})
             
             return Response(status=200, data={"message": email_resp})
         
@@ -92,14 +105,24 @@ class SingleEmailView(APIView):
             return Response({"error": "required field missing"}, status=400)
         
         try:
-            send_single_message(request.user.email, {
-                "website_link": website_link.replace("https://", ""),
+            recipient_info = {
+                "website_link": website_link,
                 "website_text": website_text,
-                "telegram_link": telegram_link.replace("https://", ""),
+                "telegram_link": telegram_link,
                 "team": team,
                 "product_name": product_name,
-                "livechat_link": livechat_link.replace("https://", "")
-            })
+                "livechat_link": livechat_link,
+                "name": request.user.username,
+                "email": "samuelemen200@gmail.com",
+                "logo_url": LOGO_URL
+            }
+            
+            email_serializer = EmailTemplateSerializer(data=recipient_info)
+            if not email_serializer.is_valid(raise_exception=False):
+                raise ValueError(f"Invalid recipient data: {email_serializer.errors}")
+            
+            send_single_message(email_serializer.validated_data)
+            
             template, _ = EmailTemplateInfo.objects.get_or_create(user=request.user)
             template.website_link = website_link
             template.website_text = website_text

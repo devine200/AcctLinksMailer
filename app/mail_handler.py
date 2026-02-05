@@ -1,26 +1,28 @@
 import os
-import re
-import json
 import time
 import math
 import logging
-import requests
 import pandas as pd
 from typing import Dict, List
 from dotenv import load_dotenv
+from email.utils import make_msgid
 
+from django.template.loader import render_to_string
+from django.core.mail import EmailMultiAlternatives
+from django.utils.html import strip_tags
+from django.core.mail import get_connection
+
+from .serializers import EmailTemplateSerializer
 
 load_dotenv()
 # -------------------
 # Config
 # -------------------
 
-ZEPTO_BATCH_LIMIT = 500          # Safe batch size (adjust if needed)
+EMAIL_BATCH_LIMIT = 500          # Safe batch size (adjust if needed)
 MAX_RETRIES = 3
 RETRY_BACKOFF = 2              # exponential multiplier (2s, 4s, 8s)
 REQUEST_TIMEOUT = 30
-
-EMAIL_REGEX = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 logging.basicConfig(
     level=logging.INFO,
@@ -31,10 +33,6 @@ logging.basicConfig(
 # Helpers
 # -------------------
 
-def is_valid_email(email: str) -> bool:
-    return bool(EMAIL_REGEX.match(email))
-
-
 def chunk_list(items: List, size: int):
     for i in range(0, len(items), size):
         yield items[i:i + size]
@@ -42,7 +40,7 @@ def chunk_list(items: List, size: int):
 
 def build_recipients(user_info_df: pd.DataFrame, merge_info: Dict) -> List[Dict]:
     """
-    Builds ZeptoMail recipient payload safely.
+    Builds SMTP recipient payload safely.
     """
     recipients = []
 
@@ -50,102 +48,87 @@ def build_recipients(user_info_df: pd.DataFrame, merge_info: Dict) -> List[Dict]
         email = str(row.get("email", "")).strip()
         fullname = str(row.get("fullname", "")).strip()
         username = str(row.get("username", "")).strip()
-
-        if not email or email.lower() == "nan":
-            logging.warning("Skipping row: missing email")
-            continue
-
-        if not is_valid_email(email):
-            logging.warning(f"Skipping invalid email: {email}")
-            continue
-
-        name = fullname if fullname and fullname.lower() != "nan" else username
-        if not name or name.lower() == "nan":
-            name = "User"
-
-        recipients.append({
-            "email_address": {
-                "address": email,
-                "name": name,
-            },
-            "merge_info": {
-                **merge_info,
-                "name": name
-            }
-        })
+        
+        name = fullname if fullname else username 
+        recipient_info = {
+            **merge_info,
+            "email": email,
+            "name": name
+        }
+        
+        email_serializer = EmailTemplateSerializer(data=recipient_info)
+        if not email_serializer.is_valid(raise_exception=False):
+            raise ValueError(f"Invalid recipient data: {email_serializer.errors}")
+        
+        recipients.append(email_serializer.validated_data)
 
     if not recipients:
         raise ValueError("No valid recipients found.")
-
+    
     return recipients
 
 
-def send_with_retry(url, payload, headers):
+def send_with_retry(recipients, connection=None):
     """
     Sends request with retry and exponential backoff.
     """
-    for attempt in range(1, MAX_RETRIES + 1):
-        try:
-            response = requests.post(
-                url,
-                json=payload,
-                headers=headers,
-                timeout=REQUEST_TIMEOUT
-            )
+    for recipient in recipients:
+        success = False
+        
+        for attempt in range(1, MAX_RETRIES + 1):
+            try:
+                send_template_email(recipient, connection)
+                success = True
+                break
+                
+            except Exception as e:
+                logging.error("Email error:", str(e))
+                logging.error(f"Attempt {attempt} request error: {e}")
 
-            if response.status_code in (200, 201, 202):
-                return response
-
-            logging.error(
-                f"Attempt {attempt} failed: {response.status_code} | {response.text}"
-            )
-
-        except requests.RequestException as e:
-            logging.error(f"Attempt {attempt} request error: {e}")
-
-        if attempt < MAX_RETRIES:
-            sleep_time = RETRY_BACKOFF ** attempt
-            logging.info(f"Retrying in {sleep_time}s...")
-            time.sleep(sleep_time)
-
-    raise RuntimeError("Max retries exceeded.")
+                if attempt < MAX_RETRIES:
+                    sleep_time = RETRY_BACKOFF ** attempt
+                    logging.info(f"Retrying in {sleep_time}s...")
+                    time.sleep(sleep_time)
+                    
+        if not success:
+            raise RuntimeError(f"Max retries exceeded for {recipient['email']}")
 
 
 # -------------------
 # Main Sender
 # -------------------
 
-def send_single_message(email: str, merge_info: Dict):
-    API_KEY = os.getenv("API_KEY")
-    if not API_KEY:
-        raise EnvironmentError("API_KEY not set in environment.")
-
-    url = "https://api.zeptomail.com/v1.1/email/template"
-
-    headers = {
-        "accept": "application/json",
-        "content-type": "application/json",
-        "authorization": f"Zoho-enczapikey {API_KEY}",
-    }
+def send_template_email(context: Dict, connection=None):
+    html = render_to_string("emails/welcome_update.html", context)
+    text = strip_tags(html)
     
-    payload = {
-        "template_key": "2d6f.3d33dc3324b77a9d.k1.57f5bf90-f8a9-11f0-b303-765e7256bde4.19becef5209",
-        "from": {
-            "address": "acctbank@acctboosterlinks.com",
-            "name": merge_info["team"]
-        },
-        "to": [
-            {
-                "email_address": {
-                    "address": email,
-                    "name": email.split("@")[0]
-                }
-            }
-        ],
-        "merge_info": merge_info
-    }
     
-    send_with_retry(url, payload, headers)
+    msg = EmailMultiAlternatives(
+        subject=f"Welcome back to {context['product_name']} 🚀",
+        body=text,
+        from_email="acctbank@acctboosterlinks.com",
+        to=[context["email"]],
+        connection=connection
+    )
+    msg.extra_headers = {
+        "Reply-To": "acctbank@acctboosterlinks.com",
+        "Message-ID": make_msgid(domain="acctboosterlinks.com"),
+        # "Precedence": "bulk"
+    }
+    msg.attach_alternative(html, "text/html")
+
+    sent = msg.send(fail_silently=False)
+
+    if sent == 0:
+        raise RuntimeError(f"SMTP rejected email to {context['email']}")
+    
+
+def send_single_message(merge_info: Dict):
+    connection = get_connection()
+    with connection:
+        second_test_email = merge_info.copy()
+        second_test_email["email"] = "samuelemeh200@gmail.com"
+        send_with_retry(recipients=[merge_info, second_test_email], connection=connection)
     
 
 def send_batch_message(
@@ -154,24 +137,12 @@ def send_batch_message(
     """
     Sends CSV users in batches to ZeptoMail safely.
     """
-
-    API_KEY = os.getenv("API_KEY")
-    if not API_KEY:
-        raise EnvironmentError("API_KEY not set in environment.")
-
-    url = "https://api.zeptomail.com/v1.1/email/template/batch"
-
-    headers = {
-        "accept": "application/json",
-        "content-type": "application/json",
-        "authorization": f"Zoho-enczapikey {API_KEY}",
-    }
-
+    connection = get_connection()
     is_test_mail = os.getenv("IS_TEST_MAIL", "false").lower() == "true"
     user_info_df = pd.read_csv("app/test_users.csv" if is_test_mail else "app/users.csv")
     recipients = build_recipients(user_info_df, merge_info)
     total = len(recipients)
-    total_batches = math.ceil(total / ZEPTO_BATCH_LIMIT)
+    total_batches = math.ceil(total / EMAIL_BATCH_LIMIT)
 
     logging.info(f"Total recipients: {total}")
     logging.info(f"Sending in {total_batches} batches...")
@@ -179,26 +150,17 @@ def send_batch_message(
     success_count = 0
     failed_batches = []
 
-    for batch_index, batch in enumerate(chunk_list(recipients, ZEPTO_BATCH_LIMIT), start=1):
-        logging.info(f"Sending batch {batch_index}/{total_batches} ({len(batch)} emails)")
+    with connection:
+        for batch_index, batch in enumerate(chunk_list(recipients, EMAIL_BATCH_LIMIT), start=1):
 
-        payload = {
-            "template_key": "2d6f.3d33dc3324b77a9d.k1.57f5bf90-f8a9-11f0-b303-765e7256bde4.19becef5209",
-            "from": {
-                "address": "acctbank@acctboosterlinks.com",
-                "name": merge_info["team"]
-            },
-            "to": batch
-        }
+            try:
+                send_with_retry(batch, connection)
+                logging.info(f"Batch {batch_index} sent successfully.")
+                success_count += len(batch)
 
-        try:
-            send_with_retry(url, payload, headers)
-            logging.info(f"Batch {batch_index} sent successfully.")
-            success_count += len(batch)
-
-        except Exception as e:
-            logging.error(f"Batch {batch_index} failed permanently: {e}")
-            failed_batches.append(batch_index)
+            except Exception as e:
+                logging.error(f"Batch {batch_index} failed permanently: {e}")
+                failed_batches.append(batch_index)
 
     logging.info("======================================")
     logging.info(f"Completed sending.")

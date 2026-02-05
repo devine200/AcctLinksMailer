@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+  <body style="margin:0;padding:0;background:#f5f7fa;font-family:Arial,Helvetica,sans-serif;">
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="padding:30px 15px;">
+      <tr>
+        <td align="center">
+
+          <!-- Card -->
+          <table width="600" cellpadding="0" cellspacing="0"
+                 style="background:#ffffff;border-radius:10px;padding:40px;max-width:600px;">
+
+            <!-- Logo (image only, no product name attached) -->
+            <tr>
+              <td align="center" style="padding-bottom:30px;">
+                <img src="{{ logo_url }}"
+                     width="95"
+                     alt="logo"
+                     style="display:block;" />
+              </td>
+            </tr>
+
+            <!-- Greeting -->
+            <tr>
+              <td style="font-size:15px;color:#333;padding-bottom:10px;">
+                Hi {{ name|default:"there" }},
+              </td>
+            </tr>
+
+            <!-- Heading -->
+            <tr>
+              <td style="font-size:26px;font-weight:bold;color:#1f766e;padding-bottom:15px;">
+                Welcome to {{ product_name }}!
+              </td>
+            </tr>
+
+            <!-- Body text -->
+            <tr>
+              <td style="font-size:15px;line-height:1.6;color:#444;padding-bottom:22px;">
+                It's been a while — but we're fully active again.
+                <br><br>
+                We've just restocked popular items and everything is running smoothly this week.
+              </td>
+            </tr>
+
+            <!-- Static updates -->
+            <tr>
+              <td style="padding-bottom:20px;">
+                <strong>What's new:</strong>
+                <ul style="margin-top:10px;color:#444;font-size:14px;line-height:1.7;">
+                  <li>Fresh stock added</li>
+                  <li>Faster order processing</li>
+                  <li>USDT payments now supported for instant top-ups</li>
+                  <li>Support team active daily</li>
+                </ul>
+              </td>
+            </tr>
+
+            <!-- CTA -->
+            <tr>
+              <td align="center" style="padding:28px 0;">
+                <a href="{{ website_link }}"
+                   style="background:#1f766e;color:#ffffff;padding:14px 28px;
+                          text-decoration:none;border-radius:8px;font-weight:bold;
+                          font-size:15px;display:inline-block;">
+                  👉 {{ website_text }}
+                </a>
+              </td>
+            </tr>
+
+            <!-- Help links -->
+            <tr>
+              <td style="font-size:13px;color:#555;padding-top:15px;">
+                Need help?
+                <a href="{{ livechat_link }}" style="color:#1f766e;text-decoration:none;">
+                  Message us through live chat
+                </a>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="font-size:13px;color:#555;padding-top:8px;">
+                Join our
+                <a href="{{ telegram_link }}" style="color:#1f766e;text-decoration:none;">
+                  community
+                </a>
+                for updates.
+              </td>
+            </tr>
+
+            <!-- Footer text (kept 👍) -->
+            <tr>
+              <td style="padding-top:32px;font-size:13px;color:#888;">
+                Thank you,<br>
+                {{ team }}<br>
+              </td>
+            </tr>
+
+            <!-- Copyright -->
+            <tr>
+              <td style="padding-top:18px;font-size:11px;color:#aaa;text-align:center;">
+                © 2026 {{ product_name }} • All rights reserved
+              </td>
+            </tr>
+
+          </table>
+
+        </td>
+      </tr>
+    </table>
+
+  </body>
+</html>
